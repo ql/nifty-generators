@@ -241,8 +241,8 @@ class TestNiftyScaffoldGenerator < Test::Unit::TestCase
     
       should "redirect to line item show page, not index" do
         assert_generated_file "app/controllers/ns/line_items_controller.rb" do |body|
-          assert_match "redirect_to @line_item", body
-          assert_no_match(/redirect_to line_items_url/, body)
+          assert_match "redirect_to ns_line_item_url(@line_item)", body
+          assert_no_match(/redirect_to ns_line_items_url/, body)
         end
       end
     end
@@ -403,10 +403,10 @@ class TestNiftyScaffoldGenerator < Test::Unit::TestCase
       end
       
       context "generator with new and index actions" do
-        rails_generator :nifty_scaffold, "line_item", "new", "index"
+        rails_generator :nifty_scaffold, "ns/line_item", "new", "index"
         
         should "have controller spec with only mentioned actions" do
-          assert_generated_file "spec/controllers/line_items_controller_spec.rb" do |body|
+          assert_generated_file "spec/controllers/ns/line_items_controller_spec.rb" do |body|
             assert_match "get :index", body
             assert_match "get :new", body
             assert_match "post :create", body
@@ -418,18 +418,18 @@ class TestNiftyScaffoldGenerator < Test::Unit::TestCase
         end
         
         should "redirect to index action on successful create" do
-          assert_generated_file "spec/controllers/line_items_controller_spec.rb" do |body|
-            assert_match "redirect_to(line_items_url)", body
+          assert_generated_file "spec/controllers/ns/line_items_controller_spec.rb" do |body|
+            assert_match "redirect_to(ns_line_items_url)", body
           end
         end
       end
       
       context "generator with edit and index actions" do
-        rails_generator :nifty_scaffold, "line_item", "edit", "index"
+        rails_generator :nifty_scaffold, "ns/line_item", "edit", "index"
         
         should "redirect to index action on successful update" do
-          assert_generated_file "spec/controllers/line_items_controller_spec.rb" do |body|
-            assert_match "redirect_to(line_items_url)", body
+          assert_generated_file "spec/controllers/ns/line_items_controller_spec.rb" do |body|
+            assert_match "redirect_to(ns_line_items_url)", body
           end
         end
       end

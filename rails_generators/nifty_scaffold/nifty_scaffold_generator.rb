@@ -201,7 +201,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def items_path(suffix = 'path')
     if action? :index
-      "#{namespaced_plural_name}_#{suffix}"
+      "#{routize(namespaced_plural_name)}_#{suffix}"
     else
       "root_#{suffix}"
     end
@@ -209,7 +209,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path(suffix = 'path')
     if action? :show
-      @namespace ? "#{namespaced_singular_name}_#{suffix}" : "@#{singular_name}"
+      @namespace ? "#{routize(namespaced_singular_name)}_#{suffix}(@#{singular_name})" : "@#{singular_name}"
     else
       items_path(suffix)
     end
@@ -217,7 +217,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path_for_spec(suffix = 'path')
     if action? :show
-      "#{namespaced_singular_name}_#{suffix}(assigns[:#{singular_name}])"
+      "#{routize(namespaced_singular_name)}_#{suffix}(assigns[:#{singular_name}])"
     else
       items_path(suffix)
     end
@@ -225,7 +225,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path_for_test(suffix = 'path')
     if action? :show
-      "#{namespaced_singular_name}_#{suffix}(assigns(:#{singular_name}))"
+      "#{routize(namespaced_singular_name)}_#{suffix}(assigns(:#{singular_name}))"
     else
       items_path(suffix)
     end
