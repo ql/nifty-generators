@@ -1,2 +1,2 @@
-module <%= plural_class_name %>Helper
+module <%= namespaced_plural_class_name %>Helper
 end
