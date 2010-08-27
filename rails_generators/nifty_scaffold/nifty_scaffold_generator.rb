@@ -9,7 +9,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
     @namespace = @args.first.camelize.include?(':') ? @args.first.camelize.split('::').first : nil
     @controller_actions = []
     @attributes = []
-    
+
     @args[1..-1].each do |arg|
       if arg == '!'
         options[:invert] = true
@@ -21,14 +21,14 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
         @controller_actions << 'update' if arg == 'edit'
       end
     end
-    
+
     @controller_actions.uniq!
     @attributes.uniq!
-    
+
     if options[:invert] || @controller_actions.empty?
       @controller_actions = all_actions - @controller_actions
     end
-    
+
     if @attributes.empty?
       options[:skip_model] = true # default to skipping model if no attributes passed
       if model_exists?
@@ -40,7 +40,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       end
     end
   end
-  
+
   def manifest
     record do |m|
       unless options[:skip_model]
@@ -82,7 +82,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
           end
         end
       end
-      
+
       unless options[:skip_controller]
         m.directory File.dirname("app/controllers/#{namespaced_plural_name}")
         m.template "controller.rb", "app/controllers/#{namespaced_plural_name}_controller.rb"
@@ -96,13 +96,17 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
             m.template "views/#{view_language}/#{action}.html.#{view_language}", "app/views/#{namespaced_plural_name}/#{action}.html.#{view_language}"
           end
         end
-      
+
         if form_partial?
-          m.template "views/#{view_language}/_form.html.#{view_language}", "app/views/#{namespaced_plural_name}/_form.html.#{view_language}"
+          if formtastic?
+            m.template "views/formtastic/_form.html.#{view_language}", "app/views/#{namespaced_plural_name}/_form.html.#{view_language}"
+          else
+            m.template "views/#{view_language}/_form.html.#{view_language}", "app/views/#{namespaced_plural_name}/_form.html.#{view_language}"
+          end
         end
-      
+
         m.route_resources plural_name
-        
+
         if rspec?
           m.directory File.dirname("spec/controllers/#{namespaced_plural_name}")
           m.template "tests/#{test_framework}/controller.rb", "spec/controllers/#{namespaced_plural_name}_controller_spec.rb"
@@ -111,21 +115,33 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
           m.template "tests/#{test_framework}/controller.rb", "test/functional/#{namespaced_plural_name}_controller_test.rb"
         end
       end
+
+      unless options[:skip_model] && options[:skip_controller]
+        if factory_girl?
+          if rspec?
+            m.directory "spec"
+            m.template "factories.rb", "spec/factories.rb", :collision => :force, :assigns => {:original => get_file_contents(destination_path("spec/factories.rb"))}
+          else
+            m.directory "test"
+            m.template "factories.rb", "test/factories.rb", :collision => :force, :assigns => {:original => get_file_contents(destination_path("test/factories.rb"))}
+          end
+        end
+      end
     end
   end
-  
+
   def form_partial?
     actions? :new, :edit
   end
-  
+
   def all_actions
     %w[index show new create edit update destroy]
   end
-  
+
   def action?(name)
     controller_actions.include? name.to_s
   end
-  
+
   def actions?(*names)
     names.all? { |n| action? n.to_s }
   end
@@ -141,7 +157,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
   def class_name
     name.camelize
   end
-  
+
   def plural_class_name
     plural_name.camelize
   end
@@ -170,7 +186,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       read_template("#{dir_name}/#{action}.rb")
     end.join("  \n").strip
   end
-  
+
   def render_form
     if form_partial?
       if options[:haml]
@@ -182,7 +198,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       read_template("views/#{view_language}/_form.html.#{view_language}")
     end
   end
-  
+
   def items_path(suffix = 'path')
     if action? :index
       "#{namespaced_plural_name}_#{suffix}"
@@ -190,7 +206,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       "root_#{suffix}"
     end
   end
-  
+
   def item_path(suffix = 'path')
     if action? :show
       @namespace ? "#{namespaced_singular_name}_#{suffix}" : "@#{singular_name}"
@@ -198,7 +214,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       items_path(suffix)
     end
   end
-  
+
   def item_path_for_spec(suffix = 'path')
     if action? :show
       "#{namespaced_singular_name}_#{suffix}(assigns[:#{singular_name}])"
@@ -206,7 +222,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       items_path(suffix)
     end
   end
-  
+
   def item_path_for_test(suffix = 'path')
     if action? :show
       "#{namespaced_singular_name}_#{suffix}(assigns(:#{singular_name}))"
@@ -214,31 +230,67 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       items_path(suffix)
     end
   end
-  
+
   def model_columns_for_attributes
     class_name.constantize.columns.reject do |column|
       column.name.to_s =~ /^(id|created_at|updated_at)$/
     end
   end
-  
+
   def rspec?
     test_framework == :rspec
   end
 
+  def factory_girl?
+    fixture_framework == :factory_girl
+  end
+
+  def formtastic?
+    form_framework == :formtastic
+  end
+
+  def get_file_contents(path)
+    File.exist?(path) ? File.read(path) : ''
+  end
+
+  def get_fixture
+    if factory_girl?
+      "Factory.create(:#{singular_name})"
+    else
+      "#{class_name}.first"
+    end
+  end
+
 protected
-  
+
   def view_language
     options[:haml] ? 'haml' : 'erb'
   end
-  
+
   def test_framework
     options[:test_framework] ||= default_test_framework
   end
-  
+
+  def fixture_framework
+    options[:fixture_framework] ||= default_fixture_framework
+  end
+
+  def form_framework
+    options[:form_framework] ||= default_form_framework
+  end
+
   def default_test_framework
     File.exist?(destination_path("spec")) ? :rspec : :testunit
   end
-  
+
+  def default_fixture_framework
+    :yaml_fixtures
+  end
+
+  def default_form_framework
+    :rails_form_helper
+  end
+
   def add_options!(opt)
     opt.separator ''
     opt.separator 'Options:'
@@ -252,17 +304,19 @@ protected
     opt.on("--rspec", "Use RSpec for test files.") { options[:test_framework] = :rspec }
     opt.on("--shoulda", "Use Shoulda for test files.") { options[:test_framework] = :shoulda }
     opt.on("--namespaced-model", "Put model in the same namespace as controller") {|v| options[:namespaced_model] = v }
+    opt.on("--factory_girl", "Use Factory Girl for fixtures") { options[:fixture_framework] = :factory_girl }
+    opt.on("--formtastic", "Use formtastic for forms") { options[:form_framework] = :formtastic }
   end
-  
+
   # is there a better way to do this? Perhaps with const_defined?
   def model_exists?
     File.exist? destination_path("app/models/#{singular_name}.rb")
   end
-  
+
   def read_template(relative_path)
     ERB.new(File.read(source_path(relative_path)), nil, '-').result(binding)
   end
-  
+
   def banner
     <<-EOS
 Creates a controller and optional model given the name, actions, and attributes.
@@ -275,3 +329,4 @@ EOS
     str.underscore.sub('/','_')
   end
 end
+
