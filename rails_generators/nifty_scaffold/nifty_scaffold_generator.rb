@@ -198,10 +198,18 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
       read_template("views/#{view_language}/_form.html.#{view_language}")
     end
   end
+  
+  def item_route(suffix = 'path')
+    "#{routize(namespaced_singular_name)}_#{suffix}"
+  end
+  
+  def items_route(suffix = 'path')
+    "#{routize(namespaced_plural_name)}_#{suffix}"
+  end
 
   def items_path(suffix = 'path')
     if action? :index
-      "#{routize(namespaced_plural_name)}_#{suffix}"
+      items_route(suffix)
     else
       "root_#{suffix}"
     end
@@ -209,7 +217,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path(suffix = 'path')
     if action? :show
-      @namespace ? "#{routize(namespaced_singular_name)}_#{suffix}(@#{singular_name})" : "@#{singular_name}"
+      @namespace ? "#{item_route(suffix)}(@#{singular_name})" : "@#{singular_name}"
     else
       items_path(suffix)
     end
@@ -217,7 +225,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path_for_spec(suffix = 'path')
     if action? :show
-      "#{routize(namespaced_singular_name)}_#{suffix}(assigns[:#{singular_name}])"
+      "#{item_route(suffix)}(assigns[:#{singular_name}])"
     else
       items_path(suffix)
     end
@@ -225,7 +233,7 @@ class NiftyScaffoldGenerator < Rails::Generator::Base
 
   def item_path_for_test(suffix = 'path')
     if action? :show
-      "#{routize(namespaced_singular_name)}_#{suffix}(assigns(:#{singular_name}))"
+      "#{item_route(suffix)}(assigns(:#{singular_name}))"
     else
       items_path(suffix)
     end
