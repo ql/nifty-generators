@@ -1,7 +1,7 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
  
 describe <%= namespaced_plural_class_name %>Controller do
-  fixtures :all
+  <%= "fixtures :all" unless options[:fixture_framework] == :factory_girl %>
   integrate_views
   
   <%= controller_methods 'tests/rspec/actions' %>
